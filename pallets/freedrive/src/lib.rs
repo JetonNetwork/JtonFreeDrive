@@ -4,6 +4,14 @@
 /// Learn more about FRAME and the core library of Substrate FRAME pallets:
 /// <https://substrate.dev/docs/en/knowledgebase/runtime/frame>
 
+use sp_std::prelude::*;
+use sp_runtime::{DispatchResult, traits::StaticLookup};
+
+use frame_support::{
+	weights::GetDispatchInfo,
+	traits::UnfilteredDispatchable,
+};
+
 pub use pallet::*;
 
 #[cfg(test)]
@@ -20,11 +28,16 @@ pub mod pallet {
 	use frame_support::{dispatch::DispatchResult, pallet_prelude::*};
 	use frame_system::pallet_prelude::*;
 
+	// important to use outside structs and consts
+	use super::*;
+
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		/// A free drive call.
+		type Call: Parameter + UnfilteredDispatchable<Origin=Self::Origin> + GetDispatchInfo;
 	}
 
 	#[pallet::pallet]
@@ -64,41 +77,29 @@ pub mod pallet {
 	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 	#[pallet::call]
 	impl<T:Config> Pallet<T> {
-		/// An example dispatchable that takes a singles value as a parameter, writes the value to
-		/// storage and emits an event. This function must be dispatched by a signed extrinsic.
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		pub fn do_something(origin: OriginFor<T>, something: u32) -> DispatchResult {
-			// Check that the extrinsic was signed and get the signer.
-			// This function will return an error if the extrinsic is not signed.
-			// https://substrate.dev/docs/en/knowledgebase/runtime/origin
-			let who = ensure_signed(origin)?;
+		/// Free drive ...
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		///
+		/// # <weight>
+		/// - O(1).
+		/// - Limited storage reads.
+		/// - One DB write (event).
+		/// - Weight of derivative `call` execution + 10,000.
+		/// # </weight>
+		#[pallet::weight({
+			let dispatch_info = call.get_dispatch_info();
+			(dispatch_info.weight.saturating_add(10_000), dispatch_info.class)
+		})]
+		pub fn freedrive(
+			origin: OriginFor<T>,
+			call: Box<<T as Config>::Call>,
+		) -> DispatchResultWithPostInfo {
+			// This is a public call, so we ensure that the origin is some signed account.
+			let sender = ensure_signed(origin)?;
+			let res = call.dispatch_bypass_filter(frame_system::RawOrigin::Root.into());
 
-			// Update storage.
-			<Something<T>>::put(something);
-
-			// Emit an event.
-			Self::deposit_event(Event::SomethingStored(something, who));
-			// Return a successful DispatchResultWithPostInfo
-			Ok(())
-		}
-
-		/// An example dispatchable that may throw a custom error.
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
-		pub fn cause_error(origin: OriginFor<T>) -> DispatchResult {
-			let _who = ensure_signed(origin)?;
-
-			// Read a value from storage.
-			match <Something<T>>::get() {
-				// Return an error if the value has not been set.
-				None => Err(Error::<T>::NoneValue)?,
-				Some(old) => {
-					// Increment the value read from storage; will error in the event of overflow.
-					let new = old.checked_add(1).ok_or(Error::<T>::StorageOverflow)?;
-					// Update the value in storage with the incremented result.
-					<Something<T>>::put(new);
-					Ok(())
-				},
-			}
+			Ok(Pays::No.into())
 		}
 	}
 }
