@@ -96,8 +96,10 @@ pub mod pallet {
 			call: Box<<T as Config>::Call>,
 		) -> DispatchResultWithPostInfo {
 			// This is a public call, so we ensure that the origin is some signed account.
-			let sender = ensure_signed(origin)?;
-			let res = call.dispatch_bypass_filter(frame_system::RawOrigin::Root.into());
+			let sender = ensure_signed(origin.clone())?;
+			//let res = call.dispatch_bypass_filter(frame_system::RawOrigin::Root.into());
+
+			let res = call.dispatch_bypass_filter(origin)?;
 
 			Ok(Pays::No.into())
 		}
