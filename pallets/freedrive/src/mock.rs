@@ -52,9 +52,14 @@ impl system::Config for Test {
 	type OnSetCode = ();
 }
 
+parameter_types! {
+	pub const MaxCalls: u32 = 100;
+}
+
 impl pallet_freedrive::Config for Test {
 	type Event = Event;
 	type Call = Call;
+	type MaxCalls = MaxCalls;
 }
 
 // Build genesis storage according to the mock runtime.

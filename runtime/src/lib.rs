@@ -267,10 +267,15 @@ impl pallet_sudo::Config for Runtime {
 	type Call = Call;
 }
 
+parameter_types! {
+	pub const MaxCalls: u32 = 100;
+}
+
 /// Configure the pallet-freedrive in pallets/freedrive.
 impl pallet_freedrive::Config for Runtime {
 	type Event = Event;
 	type Call = Call;
+	type MaxCalls = MaxCalls;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.

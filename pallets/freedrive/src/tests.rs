@@ -5,7 +5,7 @@ use frame_support::{assert_ok, assert_noop};
 fn it_works_always() {
 	new_test_ext().execute_with(|| {
 		assert!(true);
-		assert_ok!(true, true);
-		assert_ne!(true, false);
+		//assert_ok!(true, true);
+		//assert_ne!(true, false);
 	});
 }
